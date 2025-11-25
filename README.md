@@ -1,0 +1,65 @@
+# Faraway Test
+
+**Faraway Test** is a test project written in React + TypeScript using Vite, Zustand, and MUI.
+
+The application displays a list of characters (from the Star Wars API), allows editing their details, and saves changes to local storage.
+
+---
+
+## 🔧 Tech Stack
+
+- **React 19** + **TypeScript**
+- **Vite** — build and dev server
+- **Zustand** — state management
+- **React Query** — working with asynchronous data
+- **MUI** — UI components and styles
+- **React Router DOM** — routing
+- **ESLint** — static code analysis
+
+---
+
+## 📂 Project Structure
+faraway-test/
+├─ public/ # static files
+├─ src/
+│ ├─ components/ # UI components (Card, Pagination, EditableField)
+│ ├─ hooks/ # custom hooks (queries, stores, utils)
+│ ├─ pages/ # pages (Home, CharacterDetail)
+│ ├─ types/ # TypeScript types
+│ ├─ utils/ # helper functions (localStorage, etc.)
+│ ├─ App.tsx # main application component
+│ └─ main.tsx # Vite entry point
+├─ package.json
+├─ tsconfig.json
+└─ vite.config.ts
+
+---
+
+## ⚡ Installation and Launch
+
+1. Clone the repository:
+```bash
+git clone <repo-url>
+cd faraway-test
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn
+```
+
+3. Start the dev server:
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+4. Build the project
+```bash
+npm run build
+# or
+yarn build
+```
