@@ -1,34 +1,32 @@
 import type { ICharacter } from "../../types/character.ts";
 import { create } from "zustand";
-import { saveCharacter, loadCharacter } from '../../utils/localStorage';
+import { persistenceAdapter } from "../../utils/persistence/characterPersistence.ts";
 
 interface CharacterStore {
-    editedCharacters: Record<string, ICharacter>;
-    setCharacter: (id: string, character: ICharacter) => void;
-    getCharacter: (id: string) => ICharacter | undefined;
+  editedCharacters: Record<string, ICharacter>;
+  setCharacter: (id: string, character: ICharacter) => void;
+  getCharacter: (id: string) => ICharacter | undefined;
+  init: () => void;
 }
 
-export const useCharacterStore = create<CharacterStore>((set, get) => {
-    const initialEdited: Record<string, ICharacter> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith("character_")) {
-            const id = key.replace("character_", "");
-            const value = localStorage.getItem(key);
-            if (value) initialEdited[id] = JSON.parse(value);
-        }
-    }
+export const useCharacterStore = create<CharacterStore>((set, get) => ({
+  editedCharacters: {},
 
-    return {
-        editedCharacters: initialEdited,
-        setCharacter: (id, character) => {
-            set(state => ({
-                editedCharacters: { ...state.editedCharacters, [id]: character }
-            }));
-            saveCharacter(id, character);
-        },
-        getCharacter: (id) => {
-            return get().editedCharacters[id] || loadCharacter(id) || undefined;
-        }
-    };
-});
+  init: () => {
+    const loaded = persistenceAdapter.loadAll();
+    set({ editedCharacters: loaded });
+  },
+
+  setCharacter: (id, character) => {
+    set((state) => ({
+      editedCharacters: { ...state.editedCharacters, [id]: character },
+    }));
+    persistenceAdapter.save(id, character);
+  },
+
+  getCharacter: (id) => {
+    return (
+      get().editedCharacters[id] || persistenceAdapter.load(id) || undefined
+    );
+  },
+}));

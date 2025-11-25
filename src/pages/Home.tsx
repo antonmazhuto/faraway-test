@@ -5,6 +5,7 @@ import { CharacterCard } from "../components/CharacterCard.tsx";
 import { PaginationControls } from "../components/PaginationControls.tsx";
 import { useDebounce } from "../hooks/custom/useDebounce.ts";
 import { useCharacterStore } from "../hooks/stores/useCharacterStore.ts";
+import { getCharacterId } from "../lib/character/getCharacterId.ts";
 
 const skeletonArray = Array.from({ length: 9 });
 
@@ -21,13 +22,13 @@ const Home: FC = () => {
   );
 
   const mergedResults = useMemo(() => {
-    if (!data?.results) return [];
-    return data.results.map((char) => {
-      const id = char.url.split("/").filter(Boolean).pop()!;
+    const results = data?.results ?? [];
+    return results.map((char) => {
+      const id = getCharacterId(char.url)!;
       const edited = editedCharacters[id];
       return edited ? { ...char, ...edited } : char;
     });
-  }, [data?.results ? data.results : [], editedCharacters]);
+  }, [data, editedCharacters]);
 
   return (
     <Box mt={4}>
@@ -48,6 +49,7 @@ const Home: FC = () => {
           ? skeletonArray.map((_, idx) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
                 <Skeleton
+                  role="progressbar"
                   variant="rectangular"
                   height={220}
                   sx={{ borderRadius: 2 }}

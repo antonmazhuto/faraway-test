@@ -6,8 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { theme } from "./theme/theme.ts";
+import { useCharacterStore } from "./hooks/stores/useCharacterStore.ts";
 
 const queryClient = new QueryClient();
+
+useCharacterStore.getState().init();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

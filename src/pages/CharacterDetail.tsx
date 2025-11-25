@@ -1,90 +1,65 @@
-import { type FC, useCallback, useMemo, useState } from "react";
+import { type FC, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCharacterQuery } from "../hooks/queries/useCharacterQuery.ts";
 import { useCharacterStore } from "../hooks/stores/useCharacterStore.ts";
 import type { ICharacter } from "../types/character.ts";
 import {
+  Alert,
   Box,
   Button,
   CircularProgress,
-  IconButton,
+  Snackbar,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { Delete, Add } from "@mui/icons-material";
 import { useQueryClient } from "@tanstack/react-query";
+import { getCharacterId } from "../lib/character/getCharacterId.ts";
+import {EditableListField} from "../components/EditableListField.tsx";
 
-const EditableListField: FC<{
-  label: string;
-  items: string[];
-  onChange: (newItems: string[]) => void;
-}> = ({ label, items, onChange }) => {
-  const handleItemChange = (index: number, value: string) => {
-    const newItems = [...items];
-    newItems[index] = value;
-    onChange(newItems);
-  };
+type ValidationErrors<T> = Partial<Record<keyof T, string>>;
 
-  const handleAdd = () => {
-    onChange([...items, ""]);
-  };
+const validateCharacter = (char: ICharacter): ValidationErrors<ICharacter> => {
+  const errors: ValidationErrors<ICharacter> = {};
 
-  const handleRemove = (index: number) => {
-    onChange(items.filter((_, i) => i !== index));
-  };
-
-  return (
-    <Box mb={2}>
-      <Typography variant="h6">{label}</Typography>
-      <Stack spacing={1}>
-        {items.map((item, i) => (
-          <Box key={i} display="flex" gap={1}>
-            <TextField
-              fullWidth
-              value={item}
-              onChange={(e) => handleItemChange(i, e.target.value)}
-              size="small"
-            />
-            <IconButton onClick={() => handleRemove(i)}>
-              <Delete />
-            </IconButton>
-          </Box>
-        ))}
-        <Button startIcon={<Add />} onClick={handleAdd} size="small">
-          Add {label.slice(0, -1)}
-        </Button>
-      </Stack>
-    </Box>
-  );
+  if (!char.name.trim()) errors.name = "Name cannot be empty";
+  if (!char.height.trim()) errors.height = "Height cannot be empty";
+  if (!char.mass.trim()) errors.mass = "Mass cannot be empty";
+  return errors;
 };
 
 const CharacterDetail: FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading } = useCharacterQuery(id!);
+
+  const { data, isLoading, isError, error } = useCharacterQuery(id || "", {
+    enabled: !!id,
+  });
   const { getCharacter, setCharacter } = useCharacterStore();
   const queryClient = useQueryClient();
 
+  const [localCharacter, setLocalCharacter] = useState<ICharacter | null>(null);
+  const [formErrors, setFormErrors] = useState<ValidationErrors<ICharacter>>(
+    {},
+  );
   const [isSaving, setSaving] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const persistedOrFetched = useMemo(() => {
-    const stored = getCharacter(id!);
+    const stored = id ? getCharacter(id) : null;
     return stored || data;
   }, [id, data, getCharacter]);
 
-  const [localCharacter, setLocalCharacter] = useState<ICharacter | null>(
-    () => {
-      return getCharacter(id!) || null;
-    },
-  );
-
-  if (!localCharacter && persistedOrFetched) {
-    setLocalCharacter(persistedOrFetched);
-  }
+  useEffect(() => {
+    if (persistedOrFetched) {
+      setLocalCharacter(persistedOrFetched);
+    }
+  }, [persistedOrFetched]);
 
   const handleChange = useCallback((field: keyof ICharacter, value: string) => {
     setLocalCharacter((prev) => (prev ? { ...prev, [field]: value } : prev));
+    setFormErrors((prev) => ({ ...prev, [field]: undefined }));
   }, []);
 
   const handleListChange = useCallback(
@@ -100,8 +75,20 @@ const CharacterDetail: FC = () => {
     [],
   );
 
+  const handleCloseSnackbar = () => setSnackbarOpen(false);
+
   const handleSave = useCallback(async () => {
     if (!localCharacter) return;
+
+    const errors = validateCharacter(localCharacter);
+    setFormErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setSnackbarMessage(Object.values(errors)[0]);
+      setSnackbarOpen(true);
+      return;
+    }
+
     setSaving(true);
     try {
       setCharacter(id!, localCharacter!);
@@ -111,20 +98,32 @@ const CharacterDetail: FC = () => {
           if (!oldData) return oldData;
           return {
             ...oldData,
-            results: oldData.results.map((c: ICharacter) =>
-              c.url === id ? localCharacter : c,
+            results: oldData.results.map((c) =>
+              getCharacterId(c.url) === id ? localCharacter : c,
             ),
           };
         },
       );
-      navigate(-1)
+      navigate(-1);
+    } catch (err) {
+      console.error("Failed to save character:", err);
+      setSnackbarMessage("Failed to save character. Please try again.");
+      setSnackbarOpen(true);
     } finally {
       setTimeout(() => setSaving(false), 500);
     }
+  }, [id, localCharacter, navigate, queryClient, setCharacter]);
 
-  }, [id, localCharacter, queryClient, setCharacter]);
-
-  if (isLoading || !localCharacter) return <CircularProgress />;
+  if (!id) return <Typography color="error">Invalid character ID</Typography>;
+  if (isError)
+    return (
+      <Typography color="error">
+        Failed to load character. {error instanceof Error ? error.message : ""}
+      </Typography>
+    );
+  if (isLoading) return <CircularProgress />;
+  if (!localCharacter)
+    return <Typography color="error">Character not found</Typography>;
 
   const fields: (keyof Pick<
     ICharacter,
@@ -164,9 +163,9 @@ const CharacterDetail: FC = () => {
             key={field}
             label={field.replace("_", " ").toUpperCase()}
             value={localCharacter[field]}
-            onChange={(e) =>
-              handleChange(field as keyof ICharacter, e.target.value)
-            }
+            onChange={(e) => handleChange(field, e.target.value)}
+            error={!!formErrors[field]}
+            helperText={formErrors[field]}
           />
         ))}
       </Stack>
@@ -211,6 +210,21 @@ const CharacterDetail: FC = () => {
           {new Date(localCharacter.edited).toLocaleString()}
         </Typography>
       </Box>
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

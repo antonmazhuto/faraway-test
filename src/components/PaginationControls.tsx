@@ -14,7 +14,7 @@ export const PaginationControls: FC<Props> = ({
   onPageChange,
   pageSize = 10,
 }) => {
-  const totalPages = Math.ceil(totalCount / pageSize);
+  const totalPages = totalCount && pageSize ? Math.ceil(totalCount / pageSize) : 1;
 
   return (
     <Box display="flex" justifyContent="center" mt={4}>

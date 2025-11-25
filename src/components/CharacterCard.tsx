@@ -1,4 +1,4 @@
-import type { FC } from "react";
+import {type FC, memo} from "react";
 import type { ICharacter } from "../types/character.ts";
 import { useNavigate } from "react-router-dom";
 import {
@@ -6,17 +6,19 @@ import {
     Button,
     Card,
     CardActions,
-    CardContent, Chip,
+    CardContent,
+    Chip,
     Typography,
 } from "@mui/material";
+import {getCharacterId} from "../lib/character/getCharacterId.ts";
 
 type Props = {
   character: ICharacter;
 };
 
-export const CharacterCard: FC<Props> = ({ character }) => {
+const CharacterCardComponent: FC<Props> = ({ character }) => {
   const navigate = useNavigate();
-  const id = character.url.split("/").filter(Boolean).pop();
+  const id = getCharacterId(character.url);
 
   return (
     <Card
@@ -31,21 +33,24 @@ export const CharacterCard: FC<Props> = ({ character }) => {
     >
       <CardContent>
         <Typography variant="h6">{character.name}</Typography>
-          <Typography variant="body2">Height: {character.height}</Typography>
-          <Typography variant="body2">Mass: {character.mass}</Typography>
-          <Box display="flex" flexDirection="column" mt={1} gap={2}>
-              <Chip label={`Films: ${character.films.length}`} />
-              <Chip label={`Species: ${character.species.length}`} />
-              <Chip label={`Vehicles: ${character.vehicles.length}`} />
-              <Chip label={`Starships: ${character.starships.length}`} />
-          </Box>
-
+        <Typography variant="body2">Height: {character.height}</Typography>
+        <Typography variant="body2">Mass: {character.mass}</Typography>
+        <Box display="flex" flexDirection="column" mt={1} gap={2}>
+          <Chip label={`Films: ${character.films.length ?? 0}`} />
+          <Chip label={`Species: ${character.species.length ?? 0}`} />
+          <Chip label={`Vehicles: ${character.vehicles.length ?? 0}`} />
+          <Chip label={`Starships: ${character.starships.length ?? 0}`} />
+        </Box>
       </CardContent>
-      <CardActions sx={{justifyContent: "center"}}>
-        <Button size="small" onClick={() => navigate(`/character/${id}`)}>
+      <CardActions sx={{ justifyContent: "center" }}>
+        <Button size="small" disabled={!id} onClick={() => navigate(`/character/${id}`)}>
           Details
         </Button>
       </CardActions>
     </Card>
   );
 };
+
+export const CharacterCard = memo(CharacterCardComponent, (prev, next) => {
+    return prev.character === next.character;
+});
