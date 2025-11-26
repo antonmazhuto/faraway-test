@@ -4,8 +4,6 @@
 
 The application displays a list of characters (from the Star Wars API), allows editing their details, and saves changes to local storage.
 
-**Status:** ✅ Production-Ready | **Test Coverage:** 45/45 ✅ | **Code Quality:** 8.8/10 ⭐
-
 ---
 
 ## 🔧 Tech Stack
