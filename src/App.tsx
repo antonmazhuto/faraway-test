@@ -6,7 +6,7 @@ function App() {
   return (
     <ErrorBoundary>
       <CssBaseline />
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ paddingBottom: 2 }}>
         <AppRouter />
       </Container>
     </ErrorBoundary>

@@ -8,6 +8,7 @@ import {
   Box,
   Button,
   CircularProgress,
+  Skeleton,
   Snackbar,
   Stack,
   TextField,
@@ -121,7 +122,34 @@ const CharacterDetail: FC = () => {
         Failed to load character. {error instanceof Error ? error.message : ""}
       </Typography>
     );
-  if (isLoading) return <CircularProgress />;
+  if (isLoading)
+    return (
+      <Box mt={4} display="flex" flexDirection="column" gap={3}>
+        <Skeleton variant="rectangular" width={80} height={40} />
+
+        <Skeleton variant="text" width={200} height={40} />
+
+        <Stack spacing={2}>
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <Skeleton
+              key={idx}
+              variant="rectangular"
+              height={56}
+              sx={{ borderRadius: 1 }}
+            />
+          ))}
+        </Stack>
+
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <Box key={idx}>
+            <Skeleton variant="text" width={100} height={28} sx={{ mb: 1 }} />
+            <Skeleton variant="rectangular" height={48} sx={{ mb: 1 }} />
+          </Box>
+        ))}
+
+        <Skeleton variant="rectangular" width={100} height={40} />
+      </Box>
+    );
   if (!localCharacter)
     return <Typography color="error">Character not found</Typography>;
 
